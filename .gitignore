@@ -1,0 +1,25 @@
+# 敏感配置（含 cookie）
+config.json
+
+# 数据库
+*.db
+
+# 下载内容
+downloads/
+
+# 打包产物
+build/
+dist/
+*.spec.bak
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/

@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DY — 抖音内容爬取</title>
+<style>
+/* ═══════════════════════════════════════ RESET & VARS ═══════════════════════ */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0b0b0f;--bg2:#13131a;--bg3:#1c1c26;--bg4:#252533;
+  --border:#2a2a3a;--border2:#353550;
+  --text:#e4e4ec;--text2:#8b8ba0;--text3:#5c5c72;
+  --accent:#ff2d55;--accent2:#ff5e7a;--green:#34d399;--green2:#10b981;
+  --blue:#60a5fa;--yellow:#fbbf24;--orange:#f97316;--purple:#a78bfa;
+  --radius:10px;--radius-sm:6px;--radius-lg:14px;
+  --font:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:'SF Mono',Monaco,'Cascadia Code',monospace;
+  --shadow:0 4px 24px rgba(0,0,0,.3);
+  --transition:180ms ease;
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+
+/* ═══════════════════════════════════════ TOP BAR ═══════════════════════════ */
+.topbar{
+  height:52px;background:var(--bg2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 20px;
+  flex-shrink:0;z-index:10;
+}
+.topbar-brand{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:700}
+.topbar-brand span{color:var(--accent)}
+.topbar-brand .ver{font-size:10px;color:var(--text3);font-weight:400;margin-left:2px}
+.topbar-actions{display:flex;align-items:center;gap:10px}
+.topbar-btn{
+  width:34px;height:34px;border-radius:var(--radius-sm);border:1px solid var(--border);
+  background:var(--bg3);color:var(--text2);cursor:pointer;font-size:15px;
+  display:flex;align-items:center;justify-content:center;transition:all var(--transition);
+  position:relative;
+}
+.topbar-btn:hover{background:var(--bg4);color:var(--text);border-color:var(--border2)}
+.topbar-btn .badge{
+  position:absolute;top:-4px;right:-4px;background:var(--accent);color:#fff;
+  font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;padding:0 4px;
+}
+
+/* ═══════════════════════════════════════ LAYOUT ═══════════════════════════ */
+.layout{display:flex;height:calc(100vh - 52px)}
+.panel{display:flex;flex-direction:column;overflow:hidden}
+.panel-l{width:320px;min-width:280px;background:var(--bg2);border-right:1px solid var(--border)}
+.panel-c{flex:1;min-width:0;background:var(--bg)}
+.panel-r{width:360px;min-width:300px;background:var(--bg2);border-left:1px solid var(--border)}
+.panel-header{
+  padding:14px 18px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.panel-header h2{font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.panel-body{flex:1;overflow-y:auto;padding:14px 18px}
+
+/* ═══════════════════════════════════════ LEFT PANEL ═══════════════════════ */
+.input-group{margin-bottom:14px}
+.input-group label{display:block;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.input-group input,.input-group select,.input-group textarea{
+  width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  padding:10px 12px;border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);
+  outline:none;transition:border-color var(--transition);resize:vertical;
+}
+.input-group input:focus,.input-group select:focus,.input-group textarea:focus{border-color:var(--accent)}
+.input-group textarea{font-family:var(--mono);font-size:11px;min-height:60px}
+.input-row{display:flex;gap:10px}
+.input-row .input-group{flex:1}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b8ba0' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px}
+
+.btn{
+  padding:10px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;
+  cursor:pointer;border:none;transition:all var(--transition);display:inline-flex;
+  align-items:center;justify-content:center;gap:6px;font-family:var(--font);
+}
+.btn-go{
+  width:100%;background:linear-gradient(135deg,var(--accent),#e02d50);color:#fff;
+  padding:12px;font-size:14px;margin-bottom:10px;box-shadow:0 2px 12px rgba(255,45,85,.25);
+}
+.btn-go:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 4px 20px rgba(255,45,85,.35)}
+.btn-go:active{transform:translateY(0)}
+.btn-go:disabled{opacity:.5;cursor:not-allowed;transform:none;filter:none}
+.btn-cancel{width:100%;background:var(--bg4);color:var(--text2);border:1px solid var(--border);padding:10px}
+.btn-cancel:hover{background:var(--border);color:var(--text)}
+.btn-sm{padding:6px 12px;font-size:11px;border-radius:var(--radius-sm)}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text2)}
+.btn-outline:hover{background:var(--bg3);color:var(--text)}
+.btn-ghost{background:transparent;border:none;color:var(--text2);padding:6px 10px}
+.btn-ghost:hover{color:var(--text)}
+
+/* 状态指示器 */
+.cookie-bar{
+  display:flex;align-items:center;gap:8px;padding:10px 12px;
+  border-radius:var(--radius-sm);background:var(--bg3);font-size:12px;margin-bottom:10px;
+}
+.cookie-bar .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.cookie-bar.ok{border-left:3px solid var(--green)}
+.cookie-bar.ok .dot{background:var(--green);box-shadow:0 0 8px var(--green)}
+.cookie-bar.no{border-left:3px solid var(--orange)}
+.cookie-bar.no .dot{background:var(--orange);box-shadow:0 0 8px var(--orange)}
+
+/* Tab 切换 */
+.mode-tabs{
+  display:flex;gap:2px;padding:4px;background:var(--bg3);border-radius:var(--radius-sm);
+  margin-bottom:14px;
+}
+.mode-tab{
+  flex:1;padding:8px 12px;border-radius:6px;font-size:12px;font-weight:600;
+  text-align:center;cursor:pointer;transition:all var(--transition);color:var(--text2);
+  border:none;background:transparent;font-family:var(--font);
+}
+.mode-tab.active{background:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(255,45,85,.3)}
+.mode-tab:hover:not(.active){color:var(--text);background:var(--bg4)}
+.crawl-panel,.live-panel{display:none}
+.crawl-panel.active,.live-panel.active{display:block}
+
+/* 本次会话统计 */
+.session-stats{
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px;
+}
+.session-stat{
+  background:var(--bg3);border-radius:var(--radius-sm);padding:10px;text-align:center;
+}
+.session-stat .val{font-size:20px;font-weight:700;line-height:1}
+.session-stat .lbl{font-size:10px;color:var(--text2);margin-top:4px;text-transform:uppercase}
+.session-stat.posts .val{color:var(--blue)}
+.session-stat.files .val{color:var(--green)}
+.session-stat.time .val{color:var(--yellow);font-family:var(--mono);font-size:16px}
+
+/* ═══════════════════════════════════════ CENTER PANEL ═══════════════════════ */
+/* 进度条 */
+.progress-wrap{padding:0 18px 10px;flex-shrink:0}
+.progress-bar{
+  height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;transition:opacity .3s;
+}
+.progress-bar.op0{opacity:0}
+.progress-fill{
+  height:100%;background:linear-gradient(90deg,var(--accent),var(--purple));
+  border-radius:2px;transition:width .4s ease;width:0%;
+}
+.progress-fill.done{background:var(--green);width:100%!important}
+.progress-fill.error{background:var(--orange)}
+
+.log-area{flex:1;overflow-y:auto;padding:6px 18px 18px;font-family:var(--mono);font-size:12px;line-height:1.8}
+.log-entry{display:flex;gap:8px;align-items:flex-start;padding:2px 0;animation:fadeIn .2s ease}
+.log-entry .icon{flex-shrink:0;width:20px;text-align:center;font-size:13px}
+.log-entry.page{color:var(--blue);font-weight:600;font-size:13px;padding:8px 0 4px}
+.log-entry.page .icon{font-size:15px}
+.log-entry.post{color:var(--text)}
+.log-entry.download{color:var(--green)}
+.log-entry.skip{color:var(--text3)}
+.log-entry.error{color:var(--orange)}
+.log-entry.user{color:var(--yellow)}
+.log-entry.done{color:var(--green);font-size:15px;font-weight:700;padding:12px 0}
+.log-entry.done .icon{font-size:20px}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* 空状态 */
+.empty-state{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:60px 20px;text-align:center;color:var(--text3);
+}
+.empty-state .icon-empty{font-size:48px;margin-bottom:16px;opacity:.4}
+.empty-state .msg{font-size:13px}
+
+/* ═══════════════════════════════════════ RIGHT PANEL ═══════════════════════ */
+.search-wrap{padding:0 14px 10px;flex-shrink:0}
+.search-input{
+  width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  padding:8px 12px 8px 32px;border-radius:var(--radius-sm);font-size:12px;outline:none;
+  font-family:var(--font);
+}
+.search-input:focus{border-color:var(--accent)}
+.search-wrap{position:relative}
+.search-wrap::before{content:'🔍';position:absolute;left:24px;top:8px;font-size:11px;opacity:.5}
+
+.file-tree{flex:1;overflow-y:auto;padding:0 8px 8px}
+/* 用户分组 */
+.user-group{margin-bottom:6px}
+.user-group-header{
+  display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--radius-sm);
+  cursor:pointer;transition:background var(--transition);font-weight:600;font-size:13px;
+}
+.user-group-header:hover{background:var(--bg3)}
+.user-group-header .arrow{
+  font-size:10px;transition:transform var(--transition);color:var(--text3);width:14px;
+}
+.user-group-header .arrow.open{transform:rotate(90deg)}
+.user-group-header .user-avatar{
+  width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--purple));
+  display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;flex-shrink:0;
+}
+.user-group-header .user-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-group-header .user-count{font-size:11px;color:var(--text3);font-weight:400}
+.user-group-body{display:none;padding-left:10px}
+.user-group-body.open{display:block}
+/* 类型分组 */
+.type-group{margin-bottom:2px}
+.type-group-header{
+  display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--radius-sm);
+  cursor:pointer;transition:background var(--transition);font-size:12px;
+}
+.type-group-header:hover{background:var(--bg3)}
+.type-group-header .arrow{font-size:9px;transition:transform var(--transition);color:var(--text3);width:12px}
+.type-group-header .arrow.open{transform:rotate(90deg)}
+.type-group-header .type-icon{font-size:14px}
+.type-group-header .type-name{flex:1;color:var(--text2)}
+.type-group-header .type-count{font-size:11px;color:var(--text3)}
+.type-group-body{display:none}
+.type-group-body.open{display:block}
+/* 文件项 */
+.file-item{
+  display:flex;align-items:center;gap:8px;padding:6px 12px 6px 28px;border-radius:var(--radius-sm);
+  cursor:pointer;transition:background var(--transition);font-size:12px;
+}
+.file-item:hover{background:var(--bg4)}
+.file-item.selected{background:var(--bg4);outline:1px solid var(--accent)}
+.file-thumb{
+  width:32px;height:32px;border-radius:4px;object-fit:cover;background:var(--bg3);flex-shrink:0;
+}
+.file-thumb-placeholder{
+  width:32px;height:32px;border-radius:4px;background:var(--bg3);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+}
+.file-info{flex:1;min-width:0}
+.file-info .name{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.file-info .meta{font-size:10px;color:var(--text3)}
+.file-check{display:none;width:18px;height:18px;border:2px solid var(--border2);border-radius:4px;flex-shrink:0;font-size:10px;align-items:center;justify-content:center}
+.file-check.visible{display:flex}
+.file-check.checked{background:var(--accent);border-color:var(--accent);color:#fff}
+.file-del{opacity:0;cursor:pointer;color:var(--orange);font-size:14px;padding:2px 4px;flex-shrink:0;transition:opacity var(--transition)}
+.file-item:hover .file-del{opacity:1}
+.file-del:hover{color:var(--accent)}
+
+/* 批量操作栏 */
+.batch-bar{
+  display:none;align-items:center;gap:8px;padding:8px 14px;
+  background:var(--accent);color:#fff;font-size:12px;font-weight:600;flex-shrink:0;
+}
+.batch-bar.active{display:flex}
+.batch-bar .btn{background:rgba(255,255,255,.2);color:#fff;font-size:11px;padding:5px 10px}
+.batch-bar .btn:hover{background:rgba(255,255,255,.35)}
+.batch-bar .btn-close{background:transparent;border:none;color:#fff;cursor:pointer;font-size:16px;margin-left:auto}
+
+/* 底部统计 */
+.tree-footer{
+  padding:12px 14px;border-top:1px solid var(--border);flex-shrink:0;
+  display:flex;justify-content:space-between;font-size:11px;color:var(--text3);
+}
+.tree-footer b{color:var(--text2)}
+
+/* ═══════════════════════════════════════ MODALS ═══════════════════════════ */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;
+  align-items:center;justify-content:center;backdrop-filter:blur(4px);
+}
+.modal-overlay.show{display:flex}
+.modal{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);
+  width:90vw;max-width:500px;max-height:85vh;overflow-y:auto;box-shadow:var(--shadow);
+}
+.modal-header{
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.modal-header h3{font-size:15px;font-weight:600}
+.modal-close{
+  width:32px;height:32px;border-radius:50%;border:none;background:var(--bg3);
+  color:var(--text2);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;
+  transition:all var(--transition);
+}
+.modal-close:hover{background:var(--bg4);color:var(--text)}
+.modal-body{padding:20px}
+.modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+
+/* 预览弹窗 */
+.preview-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:2000;
+  align-items:center;justify-content:center;backdrop-filter:blur(8px);
+}
+.preview-overlay.show{display:flex}
+.preview-close{
+  position:fixed;top:16px;right:16px;width:40px;height:40px;border-radius:50%;
+  background:rgba(255,255,255,.1);border:none;color:#fff;font-size:22px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;z-index:2001;transition:background var(--transition);
+}
+.preview-close:hover{background:rgba(255,255,255,.2)}
+.preview-nav{
+  position:fixed;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;
+  background:rgba(255,255,255,.08);border:none;color:#fff;font-size:20px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;z-index:2001;transition:background var(--transition);
+}
+.preview-nav:hover{background:rgba(255,255,255,.18)}
+.preview-nav.prev{left:16px}
+.preview-nav.next{right:16px}
+.preview-content{max-width:90vw;max-height:88vh}
+.preview-content img{max-width:90vw;max-height:85vh;border-radius:8px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.5)}
+.preview-content video{max-width:90vw;max-height:85vh;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.5)}
+.preview-info{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.8);color:var(--text2);font-size:12px;padding:8px 16px;border-radius:20px;
+  backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.1);
+}
+
+/* 确认弹窗 */
+.confirm-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:3000;
+  align-items:center;justify-content:center;backdrop-filter:blur(4px);
+}
+.confirm-overlay.show{display:flex}
+.confirm-box{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:24px;width:360px;box-shadow:var(--shadow);text-align:center;
+}
+.confirm-box .confirm-icon{font-size:40px;margin-bottom:12px}
+.confirm-box .confirm-msg{font-size:14px;margin-bottom:20px;color:var(--text2)}
+.confirm-box .confirm-actions{display:flex;gap:10px;justify-content:center}
+.confirm-box .btn-danger{background:var(--accent);color:#fff}
+.confirm-box .btn-danger:hover{filter:brightness(1.15)}
+.confirm-box .btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border)}
+.confirm-box .btn-secondary:hover{background:var(--bg4)}
+
+/* ═══════════════════════════════════════ MISC ═══════════════════════════════ */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text3)}
+
+.hidden{display:none!important}
+.text-green{color:var(--green)}
+.text-orange{color:var(--orange)}
+.text-blue{color:var(--blue)}
+
+/* responsive */
+@media(max-width:900px){
+  .layout{flex-direction:column}
+  .panel-l{width:100%;min-width:0;max-height:40vh}
+  .panel-r{width:100%;min-width:0;max-height:40vh}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ TOP BAR ═══════════════════ -->
+<div class="topbar">
+  <div class="topbar-brand">🎬 DY<span>.</span><span class="ver">v2</span></div>
+  <div class="topbar-actions">
+    <span id="topbarStats" style="font-size:11px;color:var(--text3);margin-right:8px"></span>
+    <button class="topbar-btn" onclick="openSettings()" title="设置">⚙</button>
+  </div>
+</div>
+
+<!-- ═══════════════════ MAIN LAYOUT ═══════════════════ -->
+<div class="layout">
+
+<!-- LEFT: 控制面板 -->
+<div class="panel panel-l">
+  <div class="panel-header"><h2>🎯 控制面板</h2></div>
+  <div class="panel-body">
+    <!-- Tab 切换 -->
+    <div class="mode-tabs">
+      <button class="mode-tab active" id="tabCrawl" onclick="switchMode('crawl')">📡 帖子抓取</button>
+      <button class="mode-tab" id="tabLive" onclick="switchMode('live')">🔴 直播录制</button>
+    </div>
+
+    <!-- 帖子抓取面板 -->
+    <div class="crawl-panel active" id="crawlPanel">
+      <div class="input-group">
+        <label>目标 URL / 用户 ID / 帖子 ID</label>
+        <input id="targetInput" type="text" placeholder="粘贴抖音链接或 ID...">
+      </div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>最大页数</label>
+          <select id="pagesSelect">
+            <option value="">不限制</option>
+            <option value="1">1 页</option>
+            <option value="2">2 页</option>
+            <option value="3" selected>3 页</option>
+            <option value="5">5 页</option>
+            <option value="10">10 页</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>每页条数</label>
+          <select id="countSelect">
+            <option value="18" selected>18 条</option>
+            <option value="9">9 条</option>
+            <option value="36">36 条</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-go" id="btnGo" onclick="startCrawl()">▶ 开始爬取</button>
+      <button class="btn btn-cancel" id="btnCancel" onclick="cancelCrawl()" style="display:none">⏹ 取消爬取</button>
+
+      <div class="cookie-bar" id="cookieStatus">
+        <span class="dot"></span>
+        <span id="cookieLabel">检查中...</span>
+      </div>
+    </div>
+
+    <!-- 直播录制面板 -->
+    <div class="live-panel" id="livePanel">
+      <div class="input-group">
+        <label>直播链接 / web_rid</label>
+        <input id="liveTargetInput" type="text" placeholder="https://live.douyin.com/xxxxx">
+      </div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>画质</label>
+          <select id="liveQualitySelect">
+            <option value="hd1" selected>HD (高清)</option>
+            <option value="full_hd1">FULL HD (超清)</option>
+            <option value="sd1">SD (标清)</option>
+            <option value="sd2">SD (流畅)</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>格式</label>
+          <select id="liveFormatSelect">
+            <option value="flv" selected>FLV</option>
+            <option value="mp4">MP4 (需 FFmpeg)</option>
+          </select>
+        </div>
+      </div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>录制时长</label>
+          <select id="liveDurationSelect">
+            <option value="" selected>不限时</option>
+            <option value="1800">30 分钟</option>
+            <option value="3600">60 分钟</option>
+            <option value="7200">120 分钟</option>
+          </select>
+        </div>
+        <div class="input-group"></div>
+      </div>
+      <button class="btn btn-go" id="btnLiveGo" onclick="startLive()">🔴 开始录制</button>
+      <button class="btn btn-cancel" id="btnLiveStop" onclick="stopLive()" style="display:none">⏹ 停止录制</button>
+
+      <div class="cookie-bar" id="liveCookieStatus">
+        <span class="dot"></span>
+        <span id="liveCookieLabel">检查中...</span>
+      </div>
+    </div>
+
+    <div class="session-stats">
+      <div class="session-stat posts"><div class="val" id="statPosts">0</div><div class="lbl">帖子</div></div>
+      <div class="session-stat files"><div class="val" id="statFiles">0</div><div class="lbl">文件</div></div>
+      <div class="session-stat time"><div class="val" id="statTime">00:00</div><div class="lbl">耗时</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- CENTER: 实时进度 -->
+<div class="panel panel-c">
+  <div class="panel-header"><h2>📡 实时进度</h2></div>
+  <div class="progress-wrap">
+    <div class="progress-bar op0" id="progressBar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+  <div class="log-area" id="logArea">
+    <div class="empty-state">
+      <div class="icon-empty">🪄</div>
+      <div class="msg">粘贴链接，点击"开始爬取"</div>
+    </div>
+  </div>
+</div>
+
+<!-- RIGHT: 文件管理 -->
+<div class="panel panel-r">
+  <div class="panel-header">
+    <h2>📁 文件管理</h2>
+    <button class="btn btn-sm btn-outline" onclick="loadFiles()">🔄 刷新</button>
+  </div>
+  <div class="search-wrap">
+    <input class="search-input" id="searchInput" type="text" placeholder="搜索文件名..." oninput="filterFiles()">
+  </div>
+  <div class="batch-bar" id="batchBar">
+    <span id="batchCount">已选 0 项</span>
+    <button class="btn" onclick="batchDelete()">🗑 删除选中</button>
+    <button class="btn-close" onclick="clearSelection()">✕</button>
+  </div>
+  <div class="file-tree" id="fileTree">
+    <div class="empty-state">
+      <div class="icon-empty">📭</div>
+      <div class="msg">暂无下载文件</div>
+    </div>
+  </div>
+  <div class="tree-footer" id="treeFooter">
+    <span>文件: <b id="footerFileCount">0</b></span>
+    <span>大小: <b id="footerSize">0 MB</b></span>
+    <span>用户: <b id="footerUserCount">0</b></span>
+  </div>
+</div>
+
+</div><!-- /layout -->
+
+<!-- ═══════════════════ SETTINGS MODAL ═══════════════════ -->
+<div class="modal-overlay" id="settingsModal" onclick="event.target===this&&closeSettings()">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>⚙ 设置</h3>
+      <button class="modal-close" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="input-group">
+        <label>Cookie <span id="cookieValid" style="font-weight:400;font-size:10px"></span></label>
+        <textarea id="cookieInput" rows="4" placeholder="从浏览器 F12 → Network → 复制完整 Cookie..."></textarea>
+      </div>
+      <div class="input-group">
+        <label>代理 (可选)</label>
+        <input id="proxyInput" type="text" placeholder="http://proxy:port（留空则不使用）">
+      </div>
+      <div class="input-group">
+        <label>下载目录</label>
+        <input id="downloadDirInput" type="text" placeholder="./downloads">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" onclick="closeSettings()">取消</button>
+      <button class="btn btn-go btn-sm" style="width:auto" onclick="saveSettings()">💾 保存设置</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ PREVIEW MODAL ═══════════════════ -->
+<div class="preview-overlay" id="previewModal" onclick="event.target===this&&closePreview()">
+  <button class="preview-close" onclick="closePreview()">✕</button>
+  <button class="preview-nav prev" id="previewPrev" onclick="navPreview(-1)">◀</button>
+  <button class="preview-nav next" id="previewNext" onclick="navPreview(1)">▶</button>
+  <div class="preview-content" id="previewContent"></div>
+  <div class="preview-info" id="previewInfo"></div>
+</div>
+
+<!-- ═══════════════════ CONFIRM MODAL ═══════════════════ -->
+<div class="confirm-overlay" id="confirmModal">
+  <div class="confirm-box">
+    <div class="confirm-icon">⚠️</div>
+    <div class="confirm-msg" id="confirmMsg"></div>
+    <div class="confirm-actions">
+      <button class="btn btn-secondary btn-sm" id="confirmNo">取消</button>
+      <button class="btn btn-danger btn-sm" id="confirmYes">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════ STATE
+let evtSource = null;
+let isRunning = false;
+let timerInterval = null;
+let startTime = null;
+let filesData = { users: {}, total_videos: 0, total_images: 0, total_users: 0 };
+let postCount = 0;
+let fileCount = 0;
+let allFilesFlat = [];        // for preview navigation
+let previewIndex = -1;
+let selectedFiles = new Set();
+let searchQuery = '';
+
+// ═══════════════════════════════════════════ INIT
+document.addEventListener('DOMContentLoaded', () => {
+  checkCookie();
+  loadFiles();
+  loadStats();
+  document.getElementById('targetInput').focus();
+});
+
+// ═══════════════════════════════════════════ COOKIE
+async function checkCookie() {
+  try {
+    const r = await fetch('/api/config');
+    const cfg = await r.json();
+    const hasCookie = cfg.cookie && cfg.cookie.length > 20;
+    // Check for key fields
+    const hasKeyFields = cfg.cookie && (
+      cfg.cookie.includes('sessionid') &&
+      cfg.cookie.includes('__ac_signature')
+    );
+    const el = document.getElementById('cookieStatus');
+    const lbl = document.getElementById('cookieLabel');
+    if (hasKeyFields) {
+      el.className = 'cookie-bar ok';
+      lbl.textContent = 'Cookie 有效 ✅ — 可爬取用户列表';
+    } else if (hasCookie) {
+      el.className = 'cookie-bar no';
+      lbl.textContent = 'Cookie 不完整 ⚠ — 缺少关键字段';
+    } else {
+      el.className = 'cookie-bar no';
+      lbl.textContent = '请先设置 Cookie ⚠ — 点击右上角 ⚙';
+    }
+  } catch(e) {
+    document.getElementById('cookieLabel').textContent = '状态未知';
+  }
+  // Also update live panel cookie status
+  const liveCookieEl = document.getElementById('liveCookieStatus');
+  const liveCookieLbl = document.getElementById('liveCookieLabel');
+  if (liveCookieEl && liveCookieLbl) {
+    const el = document.getElementById('cookieStatus');
+    liveCookieEl.className = el.className;
+    liveCookieLbl.textContent = document.getElementById('cookieLabel').textContent;
+  }
+}
+
+// ═══════════════════════════════════════════ CRAWL
+async function startCrawl() {
+  const target = document.getElementById('targetInput').value.trim();
+  if (!target) return;
+
+  const maxPages = document.getElementById('pagesSelect').value;
+  const count = document.getElementById('countSelect').value;
+
+  // Update config
+  try {
+    await fetch('/api/config', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({pages_per_request: parseInt(count)}),
+    });
+  } catch(e){}
+
+  // Reset state
+  postCount = 0; fileCount = 0; startTime = Date.now();
+  updateStats();
+  document.getElementById('logArea').innerHTML = '';
+  document.getElementById('statTime').textContent = '00:00';
+  document.getElementById('progressBar').classList.remove('op0');
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('progressFill').className = 'progress-fill';
+  timerInterval = setInterval(updateTimer, 1000);
+
+  // UI
+  isRunning = true;
+  document.getElementById('btnGo').disabled = true;
+  document.getElementById('btnGo').textContent = '⏳ 爬取中...';
+  document.getElementById('btnCancel').style.display = 'flex';
+
+  // Start
+  await fetch('/api/crawl', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({target, max_pages: maxPages || null}),
+  });
+
+  connectSSE();
+}
+
+function connectSSE() {
+  if (evtSource) evtSource.close();
+  evtSource = new EventSource('/api/events');
+
+  evtSource.onmessage = (e) => {
+    const event = JSON.parse(e.data);
+    handleEvent(event);
+  };
+
+  evtSource.onerror = () => {
+    if (isRunning) {
+      setTimeout(() => { if (isRunning) connectSSE(); }, 2000);
+    }
+  };
+}
+
+function handleEvent(event) {
+  const log = document.getElementById('logArea');
+  const bar = document.getElementById('progressFill');
+
+  if (log.querySelector('.empty-state')) log.innerHTML = '';
+
+  switch(event.type) {
+    case 'log':
+      addLog(log, '💬', event.msg, '');
+      break;
+    case 'user':
+      addLog(log, '👤', `${event.nickname} (@${event.unique_id}) · 粉丝 ${formatNum(event.follower_count)} · 作品 ${event.aweme_count}`, 'user');
+      break;
+    case 'page':
+      addLog(log, '📄', `第 ${event.page} 页 — ${event.count} 条帖子`, 'page');
+      break;
+    case 'post':
+      postCount++;
+      fileCount += event.media_count;
+      updateStats();
+      const label = event.label || '📌';
+      const idx = event.index ? `[${event.index}]` : '';
+      addLog(log, label, `${idx} ${(event.desc||'(无描述)').substring(0,60)}  ·  ${event.media_count} 文件`, 'post');
+      break;
+    case 'skip':
+      addLog(log, '⏭', `跳过已下载: ${(event.desc||'').substring(0,50)}`, 'skip');
+      break;
+    case 'download':
+      // Don't add individual download lines to keep log clean
+      // Progress bar estimation
+      break;
+    case 'done':
+      addLog(log, '✅', `完成！${event.total_posts} 个新帖子，${event.total_files} 个文件${event.skipped ? `，跳过 ${event.skipped} 个` : ''}`, 'done');
+      bar.classList.add('done');
+      onCrawlEnd();
+      break;
+    case 'error':
+      addLog(log, '❌', event.msg, 'error');
+      bar.classList.add('error');
+      onCrawlEnd();
+      break;
+
+    // Live events
+    case 'live_status':
+      addLog(log, '📡', event.msg, '');
+      break;
+    case 'live_info':
+      addLog(log, '📺', `${event.nickname} · ${event.title||'(no title)'}`, 'user');
+      addLog(log, '🎬', `Quality: ${event.quality} · Online: ${event.online_users||'?'}`, 'post');
+      if (event.output_path) addLog(log, '📁', `Output: ${event.output_path}`, '');
+      document.getElementById('btnLiveGo').disabled = true;
+      document.getElementById('btnLiveGo').textContent = '🔴 Recording...';
+      break;
+    case 'live_progress':
+      fileCount = Math.round(event.size_mb || 0);
+      updateStats();
+      if (event.rate_mbps) {
+        document.getElementById('btnLiveGo').textContent = `🔴 ${event.rate_mbps} MB/s`;
+      }
+      break;
+    case 'live_stopped':
+      addLog(log, '✅', event.msg || `Done: ${event.size_mb||0}MB`, 'done');
+      bar.classList.add('done');
+      onLiveEnd();
+      break;
+    case 'live_error':
+      addLog(log, '❌', event.msg, 'error');
+      bar.classList.add('error');
+      onLiveEnd();
+      break;
+  }
+
+  log.scrollTop = log.scrollHeight;
+}
+
+function addLog(log, icon, msg, cls) {
+  const div = document.createElement('div');
+  div.className = `log-entry ${cls}`;
+  div.innerHTML = `<span class="icon">${icon}</span><span>${escapeHtml(msg)}</span>`;
+  log.appendChild(div);
+}
+
+function onCrawlEnd() {
+  isRunning = false;
+  clearInterval(timerInterval);
+  document.getElementById('btnGo').disabled = false;
+  document.getElementById('btnGo').innerHTML = '▶ 开始爬取';
+  document.getElementById('btnCancel').style.display = 'none';
+  if (evtSource) evtSource.close();
+  setTimeout(() => document.getElementById('progressBar').classList.add('op0'), 2000);
+  loadFiles();
+  loadStats();
+}
+
+function cancelCrawl() {
+  fetch('/api/cancel', {method:'POST'});
+  onCrawlEnd();
+  addLog(document.getElementById('logArea'), '⏹', '用户取消', 'error');
+  document.getElementById('progressFill').classList.add('error');
+}
+
+// ═══════════════════════════════════════════ LIVE RECORDING
+let isLiveRecording = false;
+let currentMode = 'crawl';
+
+function switchMode(mode) {
+  currentMode = mode;
+  document.getElementById('tabCrawl').classList.toggle('active', mode === 'crawl');
+  document.getElementById('tabLive').classList.toggle('active', mode === 'live');
+  document.getElementById('crawlPanel').classList.toggle('active', mode === 'crawl');
+  document.getElementById('livePanel').classList.toggle('active', mode === 'live');
+
+  // Reset stats display
+  postCount = 0; fileCount = 0;
+  updateStats();
+  document.getElementById('statTime').textContent = '00:00';
+}
+
+function startLive() {
+  const target = document.getElementById('liveTargetInput').value.trim();
+  if (!target) return;
+
+  const quality = document.getElementById('liveQualitySelect').value;
+  const format = document.getElementById('liveFormatSelect').value;
+  const durationVal = document.getElementById('liveDurationSelect').value;
+  const duration = durationVal ? parseInt(durationVal) : null;
+
+  // Reset state
+  startTime = Date.now();
+  document.getElementById('logArea').innerHTML = '';
+  document.getElementById('statTime').textContent = '00:00';
+  document.getElementById('progressBar').classList.remove('op0');
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('progressFill').className = 'progress-fill';
+  postCount = 0; fileCount = 0;
+  updateStats();
+  timerInterval = setInterval(updateTimer, 1000);
+
+  // UI
+  isLiveRecording = true;
+  document.getElementById('btnLiveGo').disabled = true;
+  document.getElementById('btnLiveGo').textContent = '⏳ 连接中...';
+  document.getElementById('btnLiveStop').style.display = 'flex';
+
+  // Start
+  fetch('/api/live/start', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({target, quality, format, duration}),
+  });
+
+  connectSSE();
+}
+
+function stopLive() {
+  fetch('/api/live/stop', {method:'POST'});
+  if (isLiveRecording) {
+    addLog(document.getElementById('logArea'), '⏹', '正在停止录制...', 'error');
+  }
+}
+
+function onLiveEnd() {
+  isLiveRecording = false;
+  clearInterval(timerInterval);
+  document.getElementById('btnLiveGo').disabled = false;
+  document.getElementById('btnLiveGo').innerHTML = '🔴 开始录制';
+  document.getElementById('btnLiveStop').style.display = 'none';
+  if (evtSource) evtSource.close();
+  setTimeout(() => document.getElementById('progressBar').classList.add('op0'), 2000);
+  loadFiles();
+  loadStats();
+}
+
+function updateStats() {
+  document.getElementById('statPosts').textContent = postCount;
+  document.getElementById('statFiles').textContent = fileCount;
+}
+
+function updateTimer() {
+  if (!startTime) return;
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+  const m = String(Math.floor(elapsed / 60)).padStart(2,'0');
+  const s = String(elapsed % 60).padStart(2,'0');
+  document.getElementById('statTime').textContent = `${m}:${s}`;
+}
+
+// ═══════════════════════════════════════════ FILE BROWSER
+async function loadFiles() {
+  try {
+    const r = await fetch('/api/files');
+    filesData = await r.json();
+    buildFlatList();
+    renderFileTree();
+    updateFooter();
+  } catch(e){}
+}
+
+async function loadStats() {
+  try {
+    const r = await fetch('/api/stats');
+    const s = await r.json();
+    document.getElementById('topbarStats').textContent =
+      `${s.total_users || 0} 用户 · ${s.total_files || 0} 文件 · ${s.total_size_mb || 0} MB`;
+  } catch(e){}
+}
+
+function buildFlatList() {
+  allFilesFlat = [];
+  for (const [uname, udata] of Object.entries(filesData.users || {})) {
+    for (const type of ['images', 'videos']) {
+      for (const f of (udata[type] || [])) {
+        allFilesFlat.push({...f, username: uname, mediaType: type});
+      }
+    }
+  }
+}
+
+function updateFooter() {
+  let totalFiles = 0, totalSize = 0;
+  for (const [, udata] of Object.entries(filesData.users || {})) {
+    totalFiles += udata.file_count || 0;
+    totalSize += udata.total_size_mb || 0;
+  }
+  document.getElementById('footerFileCount').textContent = totalFiles;
+  document.getElementById('footerSize').textContent = Math.round(totalSize) + ' MB';
+  document.getElementById('footerUserCount').textContent = filesData.total_users || 0;
+}
+
+function renderFileTree() {
+  const container = document.getElementById('fileTree');
+  const users = filesData.users || {};
+  const query = searchQuery.toLowerCase();
+
+  if (Object.keys(users).length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="icon-empty">📭</div><div class="msg">暂无下载文件</div></div>`;
+    return;
+  }
+
+  let html = '';
+  for (const [uname, udata] of Object.entries(users)) {
+    let userVisible = false;
+    let userHtml = '';
+
+    for (const [type, typeLabel, typeIcon] of [['images','图片','🖼'], ['videos','视频','🎬']]) {
+      const files = (udata[type] || []).filter(f => !query || f.name.toLowerCase().includes(query));
+      if (files.length === 0 && query) continue;
+      userVisible = true;
+
+      const typeId = `type-${sanitizeId(uname)}-${type}`;
+      userHtml += `
+        <div class="type-group">
+          <div class="type-group-header" onclick="toggleGroup('${typeId}')">
+            <span class="arrow" id="${typeId}-arrow">▶</span>
+            <span class="type-icon">${typeIcon}</span>
+            <span class="type-name">${typeLabel}</span>
+            <span class="type-count">${files.length}</span>
+          </div>
+          <div class="type-group-body" id="${typeId}-body">
+            ${files.map(f => renderFileItem(f, uname, type)).join('')}
+          </div>
+        </div>`;
+    }
+
+    if (!userVisible && query) continue;
+
+    const userId = `user-${sanitizeId(uname)}`;
+    const isDefaultOpen = Object.keys(users).length === 1; // auto-expand single user
+    html += `
+      <div class="user-group">
+        <div class="user-group-header" onclick="toggleGroup('${userId}')">
+          <span class="arrow ${isDefaultOpen ? 'open' : ''}" id="${userId}-arrow">▶</span>
+          <div class="user-avatar">${(udata.unique_id||uname)[0].toUpperCase()}</div>
+          <span class="user-name" title="${escapeHtml(uname)}">${escapeHtml(uname)}</span>
+          <span class="user-count">${udata.file_count||0} 文件</span>
+        </div>
+        <div class="user-group-body ${isDefaultOpen ? 'open' : ''}" id="${userId}-body">
+          ${userHtml}
+        </div>
+      </div>`;
+
+    // Auto-expand type groups if user is expanded
+    if (isDefaultOpen) {
+      setTimeout(() => {
+        for (const type of ['images', 'videos']) {
+          const tid = `type-${sanitizeId(uname)}-${type}`;
+          const tbody = document.getElementById(tid + '-body');
+          const tarrow = document.getElementById(tid + '-arrow');
+          if (tbody && tarrow && (udata[type]||[]).length > 0) {
+            tbody.classList.add('open');
+            tarrow.classList.add('open');
+          }
+        }
+      }, 0);
+    }
+  }
+
+  if (!html) {
+    html = `<div class="empty-state"><div class="icon-empty">🔍</div><div class="msg">没有匹配 "${escapeHtml(searchQuery)}" 的文件</div></div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+function renderFileItem(f, uname, type) {
+  const isImg = type === 'images';
+  const thumbHtml = isImg
+    ? `<img class="file-thumb" src="/api/preview/${f.path}" loading="lazy" onerror="this.style.display='none'">`
+    : `<div class="file-thumb-placeholder">🎬</div>`;
+  const fid = sanitizeId(f.path);
+  const checked = selectedFiles.has(f.path) ? ' checked' : '';
+  return `
+    <div class="file-item${selectedFiles.has(f.path)?' selected':''}" id="file-${fid}"
+         onclick="previewFile('${escapeAttr(f.path)}','${type}','${escapeAttr(uname)}')">
+      ${thumbHtml}
+      <div class="file-info">
+        <div class="name" title="${escapeAttr(f.name)}">${escapeHtml(f.name)}</div>
+        <div class="meta">${f.size_mb} MB · ${f.date||''}</div>
+      </div>
+      <div class="file-check${batchMode ? ' visible' : ''}${selectedFiles.has(f.path)?' checked':''}"
+           id="check-${fid}"
+           onclick="event.stopPropagation();toggleFileSelect('${escapeAttr(f.path)}','${fid}')">✓</div>
+      <span class="file-del" title="删除" onclick="event.stopPropagation();confirmDelete('${escapeAttr(f.path)}')">🗑</span>
+    </div>`;
+}
+
+function toggleGroup(id) {
+  const body = document.getElementById(id + '-body');
+  const arrow = document.getElementById(id + '-arrow');
+  if (body) body.classList.toggle('open');
+  if (arrow) arrow.classList.toggle('open');
+}
+
+function filterFiles() {
+  searchQuery = document.getElementById('searchInput').value;
+  renderFileTree();
+}
+
+let batchMode = false;
+function toggleFileSelect(path, fid) {
+  if (selectedFiles.has(path)) {
+    selectedFiles.delete(path);
+    document.getElementById('check-' + fid)?.classList.remove('checked');
+    document.getElementById('file-' + fid)?.classList.remove('selected');
+  } else {
+    selectedFiles.add(path);
+    document.getElementById('check-' + fid)?.classList.add('checked');
+    document.getElementById('file-' + fid)?.classList.add('selected');
+    if (!batchMode) { batchMode = true; updateBatchUI(); }
+  }
+  if (selectedFiles.size === 0) { batchMode = false; updateBatchUI(); }
+  updateBatchUI();
+}
+
+function updateBatchUI() {
+  const bar = document.getElementById('batchBar');
+  bar.classList.toggle('active', batchMode && selectedFiles.size > 0);
+  document.getElementById('batchCount').textContent = `已选 ${selectedFiles.size} 项`;
+  document.querySelectorAll('.file-check').forEach(el => el.classList.toggle('visible', batchMode));
+  if (!batchMode) {
+    document.querySelectorAll('.file-check.checked').forEach(el => el.classList.toggle('visible', true));
+  }
+}
+
+function clearSelection() {
+  selectedFiles.clear();
+  batchMode = false;
+  updateBatchUI();
+  renderFileTree();
+}
+
+async function batchDelete() {
+  if (selectedFiles.size === 0) return;
+  showConfirm(`确认删除选中的 ${selectedFiles.size} 个文件？此操作不可撤销。`, async () => {
+    let deleted = 0;
+    for (const path of selectedFiles) {
+      try {
+        await fetch(`/api/preview/${path}`, {method:'DELETE'});
+        deleted++;
+      } catch(e){}
+    }
+    selectedFiles.clear();
+    batchMode = false;
+    updateBatchUI();
+    loadFiles();
+    loadStats();
+  });
+}
+
+// ═══════════════════════════════════════════ PREVIEW
+function previewFile(path, type, username) {
+  const overlay = document.getElementById('previewModal');
+  const content = document.getElementById('previewContent');
+  const info = document.getElementById('previewInfo');
+  const url = `/api/preview/${path}`;
+
+  // Find index in flat list
+  previewIndex = allFilesFlat.findIndex(f => f.path === path);
+
+  if (type === 'images') {
+    content.innerHTML = `<img src="${url}" alt="preview">`;
+  } else {
+    content.innerHTML = `<video src="${url}" controls autoplay></video>`;
+  }
+  info.textContent = `${username || ''} · ${path.split('/').pop()}`;
+  overlay.classList.add('show');
+  updateNavButtons();
+}
+
+function closePreview() {
+  document.getElementById('previewModal').classList.remove('show');
+  document.getElementById('previewContent').innerHTML = '';
+}
+
+function navPreview(dir) {
+  if (allFilesFlat.length === 0) return;
+  previewIndex = (previewIndex + dir + allFilesFlat.length) % allFilesFlat.length;
+  const f = allFilesFlat[previewIndex];
+  previewFile(f.path, f.mediaType, f.username);
+}
+
+function updateNavButtons() {
+  document.getElementById('previewPrev').style.display = allFilesFlat.length > 1 ? 'flex' : 'none';
+  document.getElementById('previewNext').style.display = allFilesFlat.length > 1 ? 'flex' : 'none';
+}
+
+// ═══════════════════════════════════════════ SETTINGS
+async function openSettings() {
+  try {
+    const r = await fetch('/api/config');
+    const cfg = await r.json();
+    document.getElementById('cookieInput').value = cfg.cookie || '';
+    document.getElementById('proxyInput').value = cfg.proxy || '';
+    document.getElementById('downloadDirInput').value = cfg.download_dir || './downloads';
+    updateCookieValid(cfg.cookie);
+    document.getElementById('settingsModal').classList.add('show');
+  } catch(e){}
+}
+
+function updateCookieValid(cookie) {
+  const el = document.getElementById('cookieValid');
+  if (cookie && cookie.includes('sessionid') && cookie.includes('__ac_signature')) {
+    el.textContent = '✅ 有效';
+    el.className = 'text-green';
+  } else if (cookie && cookie.length > 10) {
+    el.textContent = '⚠ 不完整';
+    el.className = 'text-orange';
+  } else {
+    el.textContent = '';
+  }
+}
+
+function closeSettings() {
+  document.getElementById('settingsModal').classList.remove('show');
+}
+
+async function saveSettings() {
+  const cookie = document.getElementById('cookieInput').value.trim();
+  const proxy = document.getElementById('proxyInput').value.trim();
+  const downloadDir = document.getElementById('downloadDirInput').value.trim();
+
+  try {
+    await fetch('/api/config', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({cookie, proxy, download_dir: downloadDir || './downloads'}),
+    });
+    closeSettings();
+    checkCookie();
+  } catch(e) {
+    alert('保存失败: ' + e);
+  }
+}
+
+// ═══════════════════════════════════════════ CONFIRM
+let confirmCallback = null;
+function showConfirm(msg, onYes) {
+  document.getElementById('confirmMsg').textContent = msg;
+  document.getElementById('confirmModal').classList.add('show');
+  confirmCallback = onYes;
+}
+document.getElementById('confirmYes').onclick = () => {
+  document.getElementById('confirmModal').classList.remove('show');
+  if (confirmCallback) confirmCallback();
+};
+document.getElementById('confirmNo').onclick = () => {
+  document.getElementById('confirmModal').classList.remove('show');
+  confirmCallback = null;
+};
+
+// ═══════════════════════════════════════════ DELETE SINGLE
+function confirmDelete(path) {
+  showConfirm('确认删除此文件？', async () => {
+    try {
+      await fetch(`/api/preview/${path}`, {method:'DELETE'});
+      loadFiles();
+      loadStats();
+    } catch(e){}
+  });
+}
+
+// ═══════════════════════════════════════════ UTILS
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+function escapeAttr(s) {
+  return s.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+function sanitizeId(s) {
+  return s.replace(/[^a-zA-Z0-9一-鿿_-]/g, '_');
+}
+function formatNum(n) {
+  if (n >= 10000) return (n/10000).toFixed(1) + '万';
+  if (n >= 1000) return (n/1000).toFixed(1) + 'k';
+  return String(n);
+}
+
+// ═══════════════════════════════════════════ KEYBOARD
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closePreview();
+    closeSettings();
+    if (document.getElementById('confirmModal').classList.contains('show')) {
+      document.getElementById('confirmModal').classList.remove('show');
+    }
+  }
+  if (e.key === 'Enter' && document.activeElement === document.getElementById('targetInput') && !isRunning) {
+    startCrawl();
+  }
+  if (e.key === 'Enter' && document.activeElement === document.getElementById('liveTargetInput') && !isLiveRecording) {
+    startLive();
+  }
+  if (e.key === 'ArrowLeft' && document.getElementById('previewModal').classList.contains('show')) {
+    navPreview(-1);
+  }
+  if (e.key === 'ArrowRight' && document.getElementById('previewModal').classList.contains('show')) {
+    navPreview(1);
+  }
+});
+</script>
+</body>
+</html>

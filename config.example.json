@@ -1,0 +1,11 @@
+{
+  "proxy": "",
+  "cookie": "",
+  "download_dir": "./downloads",
+  "delay_min": 1.0,
+  "delay_max": 3.0,
+  "pages_per_request": 18,
+  "live_quality": "hd1",
+  "live_format": "flv",
+  "live_output_dir": "./downloads/live"
+}
