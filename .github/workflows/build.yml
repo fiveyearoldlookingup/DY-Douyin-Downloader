@@ -1,0 +1,100 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  # ── macOS .app ──
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          # macOS webview 需要 pyobjc
+          pip install pyobjc-core pyobjc-framework-Cocoa pyobjc-framework-WebKit pyobjc-framework-Quartz
+
+      - name: Create placeholder config
+        run: cp config.example.json config.json
+
+      - name: Build with PyInstaller
+        run: python3 -m PyInstaller dy_app.spec
+
+      - name: Clean xattr & ad-hoc sign
+        run: |
+          xattr -cr dist/DY抖音下载.app 2>/dev/null || true
+          codesign -s - --force --deep dist/DY抖音下载.app 2>/dev/null || true
+
+      - name: Package as DMG
+        run: |
+          hdiutil create -volname "DY抖音下载" -srcfolder dist/DY抖音下载.app \
+            -ov -format UDZO dist/DY抖音下载_macOS.dmg
+
+      - name: Upload .app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DY-macOS
+          path: dist/DY抖音下载_macOS.dmg
+
+  # ── Windows .exe ──
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create placeholder config
+        run: copy config.example.json config.json
+
+      - name: Build with PyInstaller
+        run: python -m PyInstaller dy_app.spec
+
+      - name: Package as ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist\DY抖音下载\* -DestinationPath dist\DY抖音下载_Windows.zip
+
+      - name: Upload .exe artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DY-Windows
+          path: dist\DY抖音下载_Windows.zip
+
+  # ── Create GitHub Release (on tag push) ──
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [macos, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: DY-*
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/DY-macOS/DY抖音下载_macOS.dmg
+            artifacts/DY-Windows/DY抖音下载_Windows.zip
+          draft: false
+          generate_release_notes: true
