@@ -62,8 +62,8 @@ pip install -r requirements.txt
 
 | 平台 | 下载 | 说明 |
 |------|------|------|
-| 🍎 macOS | [DY抖音下载_macOS.dmg](https://github.com/fiveyearoldlookingup/DY-Douyin-Downloader/releases/latest) | 双击 DMG → 拖入 Applications。首次打开若提示「无法验证开发者」，前往 **系统偏好设置 → 安全性与隐私 → 仍要打开** |
-| 🪟 Windows | [DY抖音下载_Windows.zip](https://github.com/fiveyearoldlookingup/DY-Douyin-Downloader/releases/latest) | 解压 ZIP → 运行 `DY抖音下载.exe`。Win10/11 自带 WebView2；Win7 需[手动安装](https://developer.microsoft.com/microsoft-edge/webview2/) |
+| 🍎 macOS | [DY-Downloader-macOS.dmg](https://github.com/fiveyearoldlookingup/DY-Douyin-Downloader/releases/latest) | 双击 DMG → 拖入 Applications。首次打开若提示「无法验证开发者」，前往 **系统偏好设置 → 安全性与隐私 → 仍要打开** |
+| 🪟 Windows | [DY-Downloader-Windows.zip](https://github.com/fiveyearoldlookingup/DY-Douyin-Downloader/releases/latest) | 解压 ZIP → 运行 `DY抖音下载.exe`。Win10/11 自带 WebView2；Win7 需[手动安装](https://developer.microsoft.com/microsoft-edge/webview2/) |
 
 > 桌面应用会后台启动 Flask 服务，并弹出一个原生窗口显示 WebUI。关闭窗口即停止服务。
 

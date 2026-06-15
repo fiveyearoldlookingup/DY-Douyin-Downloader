@@ -38,7 +38,7 @@ jobs:
       - name: Package as DMG
         run: |
           hdiutil create -volname "DY抖音下载" -srcfolder dist/DY抖音下载.app \
-            -ov -format UDZO dist/DY抖音下载_macOS.dmg
+            -ov -format UDZO dist/DY-Downloader-macOS.dmg
 
       - name: Upload .app artifact
         uses: actions/upload-artifact@v4
@@ -69,7 +69,7 @@ jobs:
       - name: Package as ZIP
         shell: pwsh
         run: |
-          Compress-Archive -Path dist\DY抖音下载\* -DestinationPath dist\DY抖音下载_Windows.zip
+          Compress-Archive -Path dist\DY抖音下载\* -DestinationPath dist\DY-Downloader-Windows.zip
 
       - name: Upload .exe artifact
         uses: actions/upload-artifact@v4
@@ -94,7 +94,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/DY-macOS/DY抖音下载_macOS.dmg
-            artifacts/DY-Windows/DY抖音下载_Windows.zip
+            artifacts/DY-macOS/DY-Downloader-macOS.dmg
+            artifacts/DY-Windows/DY-Downloader-Windows.zip
           draft: false
           generate_release_notes: true
